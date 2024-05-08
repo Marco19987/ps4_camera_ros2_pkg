@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 #cap = cv2.VideoCapture('http://root:root@192.168.70.52/mjpg/1/video.mjpg')
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(4)
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)

@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(4)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
 

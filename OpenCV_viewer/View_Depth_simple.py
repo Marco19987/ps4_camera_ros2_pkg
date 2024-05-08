@@ -12,9 +12,6 @@ new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
 
 mapx, mapy = cv2.initUndistortRectifyMap(K,dist, None ,new_camera_matrix,(w, h),cv2.CV_16SC2)
 
-#cap = cv2.VideoCapture("/home/sieuwe/Desktop/vidz/full_2.avi")
-#cap = cv2.VideoCapture("/home/sieuwe/Desktop/vidz/full_3.avi")
-#cap = cv2.VideoCapture("/home/sieuwe/Desktop/vidz/full_1.avi")
 cap = cv2.VideoCapture(4)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 3448)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 808)
@@ -36,10 +33,6 @@ disp12MaxDiff = 25,
 P1 = 8*3*win_size**2,#8*3*win_size**2,
 P2 =32*3*win_size**2) #32*3*win_size**2)
 
-
-
-
-
 def decode(frame):
     left = np.zeros((800,1264,3), np.uint8)
     right = np.zeros((800,1264,3), np.uint8)
@@ -53,6 +46,8 @@ def decode(frame):
 def get_distance(d):
     return 30 * 10/d
 
+
+stereo_test = cv2.StereoSGBM_create(numDisparities=128, blockSize=32)
 while(1):
 
     ret, frame = cap.read()
@@ -61,14 +56,12 @@ while(1):
 
     right, left = decode(frame)
     
-    #cv2.imshow("left",left)
-    #cv2.imshow("right",right)
-
+ 
     #Undistort images
-    img_1_undistorted = cv2.undistort(left, K, dist, None, new_camera_matrix)
-    img_2_undistorted = cv2.undistort(right, K, dist, None, new_camera_matrix)
-    img_1_undistorted= cv2.remap(left,mapx,mapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)  
-    img_2_undistorted= cv2.remap(right,mapx,mapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+    #img_1_undistorted = cv2.undistort(left, K, dist, None, new_camera_matrix)
+    #img_2_undistorted = cv2.undistort(right, K, dist, None, new_camera_matrix)
+    #img_1_undistorted= cv2.remap(left,mapx,mapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)  
+    #img_2_undistorted= cv2.remap(right,mapx,mapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
 
     #downsample image for higher speed
     img_1_downsampled = cv2.pyrDown(cv2.cvtColor(left, cv2.COLOR_BGR2GRAY))
@@ -79,6 +72,13 @@ while(1):
     #compute stereo
     disp = stereo.compute(img_1_downsampled,img_2_downsampled)
     
+    disparity_2 = stereo_test.compute(img_1_downsampled,img_2_downsampled)
+    #plt.imshow(disparity_2, 'gray')
+    #plt.show()
+    normalized_disparity = cv2.normalize(disparity_2, None, alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    cv2.imshow("color & Depth", normalized_disparity)
+    cv2.imshow("right", img_1_downsampled)
+    
     #denoise step 1
     denoised = ((disp.astype(np.float32)/ 16)-min_disp)/num_disp
     dispc= (denoised-denoised.min())*255
@@ -88,7 +88,7 @@ while(1):
     denoised= cv2.morphologyEx(dispC,cv2.MORPH_CLOSE, kernel)
     
     #apply color map
-    disp_Color= cv2.applyColorMap(denoised,cv2.COLORMAP_HSV)
+    disp_Color= cv2.applyColorMap(denoised,cv2.COLORMAP_OCEAN)
     
     f = 0.3*w                          # 30cm focal length
     Q = np.float32([[1, 0, 0, -0.5*new_w],
@@ -109,19 +109,19 @@ while(1):
     #print(np.take(z_values,indices[:-100]))
 
     #visualize
-    cv2.imshow("Depth", disp_Color)
+    #cv2.imshow("Depth", disp_Color)
     left = cv2.resize(left,(632, 400))
     color_depth = cv2.addWeighted(left,0.4,disp_Color,0.4,0)
 
     end = time.time()
     fps = 1 / (end-start)
 
-    cv2.putText(color_depth, "minimum: " + str(round(min_distance,1)),(5, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
-    cv2.putText(color_depth, "average: " + str(round(avg_distance,1)),(5, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
-    cv2.putText(color_depth, "maximum: " + str(round(max_distance,1)),(5, 60),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
-    cv2.putText(color_depth, "FPS: " + str(round(fps)),(5, 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
+    #cv2.putText(color_depth, "minimum: " + str(round(min_distance,1)),(5, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
+    #cv2.putText(color_depth, "average: " + str(round(avg_distance,1)),(5, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
+    #cv2.putText(color_depth, "maximum: " + str(round(max_distance,1)),(5, 60),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
+    #cv2.putText(color_depth, "FPS: " + str(round(fps)),(5, 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
 
-    cv2.imshow("color & Depth", color_depth)
+    #cv2.imshow("color & Depth", color_depth)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

@@ -36,10 +36,6 @@ disp12MaxDiff = 25,
 P1 = 8*3*win_size**2,#8*3*win_size**2,
 P2 =32*3*win_size**2) #32*3*win_size**2)
 
-
-
-
-
 def decode(frame):
     left = np.zeros((800,1264,3), np.uint8)
     right = np.zeros((800,1264,3), np.uint8)
@@ -53,6 +49,11 @@ def decode(frame):
 def get_distance(d):
     return 30 * 10/d
 
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.set_xlabel('X Label')
+ax.set_ylabel('Y Label')
+ax.set_zlabel('Z Label')
 while(1):
 
     ret, frame = cap.read()
@@ -65,14 +66,23 @@ while(1):
     #cv2.imshow("right",right)
 
     #Undistort images
-    img_1_undistorted = cv2.undistort(left, K, dist, None, new_camera_matrix)
-    img_2_undistorted = cv2.undistort(right, K, dist, None, new_camera_matrix)
+    #img_1_undistorted = cv2.undistort(left, K, dist, None, new_camera_matrix)
+    #img_2_undistorted = cv2.undistort(right, K, dist, None, new_camera_matrix)
     img_1_undistorted= cv2.remap(left,mapx,mapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)  
     img_2_undistorted= cv2.remap(right,mapx,mapy, cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
+    
+    dst = img_1_undistorted
+    x_, y_, w_, h_ = roi
+    dst = dst[y_:y_+h_, x_:x_+w_]
+    cv2.imshow("",dst)
+    
+    #right = img_2_undistorted
+    #left = img_1_undistorted
 
-    #downsample image for higher speed
+    #downsample image for higheundisotrtedr speed
     img_1_downsampled = cv2.pyrDown(cv2.cvtColor(left, cv2.COLOR_BGR2GRAY))
     img_2_downsampled = cv2.pyrDown(cv2.cvtColor(right, cv2.COLOR_BGR2GRAY))
+    
 
     new_w, new_h = img_1_downsampled.shape
 
@@ -88,7 +98,7 @@ while(1):
     denoised= cv2.morphologyEx(dispC,cv2.MORPH_CLOSE, kernel)
     
     #apply color map
-    disp_Color= cv2.applyColorMap(denoised,cv2.COLORMAP_HSV)
+    disp_Color= cv2.applyColorMap(denoised,cv2.COLORMAP_OCEAN)
     
     f = 0.3*w                          # 30cm focal length
     Q = np.float32([[1, 0, 0, -0.5*new_w],
@@ -96,10 +106,26 @@ while(1):
                     [0, 0, 0,      f], # so that y-axis looks up
                     [0, 0, 1,      0]])
     points = cv2.reprojectImageTo3D(disp, Q)
-
+    #import pdb 
+    #breakpoint()
+    
     z_values = points[:,:,2]
     z_values = z_values.flatten()
     indices = z_values.argsort()
+    
+    step = 10
+    x_points = points[0:-1:step,0:-1:step,0]
+    y_points = points[0:-1:step,0:-1:step,1]
+    z_points = points[0:-1:step,0:-1:step,2]
+   
+
+    
+    
+    ax.scatter(x_points,y_points,z_points, c='r', marker='o')
+    #plt.show()
+    
+     
+
 
     precentage = 25280
     min_distance = np.mean(np.take(z_values,indices[0:precentage]))                             # takes the 30% lowest measuerements and gets the average distance from these.
@@ -122,9 +148,10 @@ while(1):
     cv2.putText(color_depth, "FPS: " + str(round(fps)),(5, 80),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2,cv2.LINE_AA)
 
     cv2.imshow("color & Depth", color_depth)
+    #cv2.imshow("color", right)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+       break
 
 cap.release()
 cv2.destroyAllWindows()
